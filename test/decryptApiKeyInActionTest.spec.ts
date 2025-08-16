@@ -10,8 +10,9 @@ const ALCHEMY_API_KEY = getEnv("ALCHEMY_API_KEY");
 
 describe("decryptApiKey", () => {
   it("should decrypt API key successfully", async () => {
-    const url = "https://base-mainnet.g.alchemy.com/v2/";
+    const url = "https://eth-mainnet.g.alchemy.com/v2/";
     const result = await decryptApiKey(url, ALCHEMY_API_KEY);
+    console.log(result);
     const expectedSchema = {
       type: "object",
       required: [
