@@ -1,5 +1,5 @@
 import { LitNodeClient } from "@lit-protocol/lit-node-client";
-import { encryptString } from '@lit-protocol/encryption';
+import { encryptString } from "@lit-protocol/encryption";
 import { LIT_NETWORK, LIT_RPC, LIT_ABILITY } from "@lit-protocol/constants";
 import {
   createSiweMessage,
@@ -24,7 +24,7 @@ export const decryptApiKey = async (alchemyUrl: string, key: string) => {
   try {
     const ethersWallet = new ethers.Wallet(
       ETHEREUM_PRIVATE_KEY,
-      new ethers.providers.JsonRpcProvider(LIT_RPC.CHRONICLE_YELLOWSTONE)
+      new ethers.providers.JsonRpcProvider(LIT_RPC.CHRONICLE_YELLOWSTONE),
     );
 
     console.log("🔄 Connecting to the Lit network...");
@@ -56,7 +56,7 @@ export const decryptApiKey = async (alchemyUrl: string, key: string) => {
       console.log(`✅ Minted new Capacity Credit with ID: ${capacityTokenId}`);
     } else {
       console.log(
-        `ℹ️  Using provided Capacity Credit with ID: ${LIT_CAPACITY_CREDIT_TOKEN_ID}`
+        `ℹ️  Using provided Capacity Credit with ID: ${LIT_CAPACITY_CREDIT_TOKEN_ID}`,
       );
     }
 
@@ -90,20 +90,20 @@ export const decryptApiKey = async (alchemyUrl: string, key: string) => {
         accessControlConditions,
         dataToEncrypt: key,
       },
-      litNodeClient
+      litNodeClient,
     );
     console.log("✅ Encrypted the API key");
     console.log("ℹ️  The base64-encoded ciphertext:", ciphertext);
     console.log(
       "ℹ️  The hash of the data that was encrypted:",
-      dataToEncryptHash
+      dataToEncryptHash,
     );
 
     console.log("🔄 Generating the Resource String...");
     const accsResourceString =
       await LitAccessControlConditionResource.generateResourceString(
         accessControlConditions as any,
-        dataToEncryptHash
+        dataToEncryptHash,
       );
     console.log("✅ Generated the Resource String");
 
@@ -136,6 +136,7 @@ export const decryptApiKey = async (alchemyUrl: string, key: string) => {
           litNodeClient,
         });
 
+        console.log(toSign);
         return await generateAuthSig({
           signer: ethersWallet,
           toSign,

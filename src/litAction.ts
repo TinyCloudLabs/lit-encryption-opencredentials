@@ -9,7 +9,6 @@ const _litActionCode = async () => {
       authSig: null,
       chain: "ethereum",
     });
-    console.log(apiKey);
 
     const blockNumber = await Lit.Actions.runOnce(
       { waitForResponse: true, name: "ETH block number" },
