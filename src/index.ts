@@ -79,17 +79,17 @@ export const encryptToCredential = async (
       });
     console.log("✅ Capacity Delegation Auth Sig created");
 
-    // Minimal access control - anyone with ETH balance > 0 can attempt decryption
+    // Universal access control - anyone can attempt decryption
     // Real authorization happens in the Lit Action via credential verification
     const accessControlConditions: AccessControlConditions = [
       {
         contractAddress: "",
-        standardContractType: "",
+        standardContractType: "timestamp",
         chain: "ethereum",
-        method: "eth_getBalance",
-        parameters: [":userAddress", "latest"],
+        method: "",
+        parameters: [":currentActionIpfsId"],
         returnValueTest: {
-          comparator: ">",
+          comparator: ">=",
           value: "0",
         },
       },
@@ -340,17 +340,17 @@ export const encryptToCredentialWithJWT = async (
       });
     console.log("✅ Capacity Delegation Auth Sig created");
 
-    // Minimal access control - anyone with ETH balance > 0 can attempt decryption
+    // Universal access control - anyone can attempt decryption
     // Real authorization happens in the Lit Action via dual JWT verification
     const accessControlConditions: AccessControlConditions = [
       {
         contractAddress: "",
-        standardContractType: "",
+        standardContractType: "timestamp",
         chain: "ethereum",
-        method: "eth_getBalance",
-        parameters: [":userAddress", "latest"],
+        method: "",
+        parameters: [":currentActionIpfsId"],
         returnValueTest: {
-          comparator: ">",
+          comparator: ">=",
           value: "0",
         },
       },
