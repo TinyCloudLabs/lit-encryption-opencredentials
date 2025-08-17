@@ -12,25 +12,37 @@ import { AccessControlConditions } from "@lit-protocol/types";
 import * as ethers from "ethers";
 
 import { litActionCode } from "./litAction";
-import { getEnv, CredentialRequirements, loadCredentials, findMatchingCredential, validateGithubCredentialRequirements } from "./utils";
-import { createEncryptionJWT, createDecryptionJWT, validateJWTUserAddress } from "./jwt";
-import { litActionCodeWithES256K } from "./litActionEnhanced";
+import {
+  getEnv,
+  CredentialRequirements,
+  loadCredentials,
+  findMatchingCredential,
+  validateGithubCredentialRequirements,
+} from "./utils";
+import {
+  createEncryptionJWT,
+  createDecryptionJWT,
+  validateJWTUserAddress,
+} from "./jwt";
+import { litActionCode } from "./litActionEnhanced";
 
 const ETHEREUM_PRIVATE_KEY = getEnv("ETHEREUM_PRIVATE_KEY");
 const LIT_CAPACITY_CREDIT_TOKEN_ID =
   process.env["LIT_CAPACITY_CREDIT_TOKEN_ID"];
 
 export const encryptToCredential = async (
-  secret: string, 
+  secret: string,
   credentialRequirements: CredentialRequirements,
-  userAddress: string
+  userAddress: string,
 ) => {
   let litNodeClient: LitNodeClient;
 
   try {
     console.log("🔒 Validating credential requirements...");
     validateGithubCredentialRequirements(credentialRequirements);
-    console.log(`✅ Credential requirements validated for trusted issuer: ${credentialRequirements.issuer}`);
+    console.log(
+      `✅ Credential requirements validated for trusted issuer: ${credentialRequirements.issuer}`,
+    );
     const ethersWallet = new ethers.Wallet(
       ETHEREUM_PRIVATE_KEY,
       new ethers.providers.JsonRpcProvider(LIT_RPC.CHRONICLE_YELLOWSTONE),
@@ -123,7 +135,7 @@ export const encryptToCredential = async (
       dataToEncryptHash,
       accessControlConditions,
       accsResourceString,
-      credentialRequirements
+      credentialRequirements,
     };
   } catch (error) {
     console.error(error);
@@ -143,7 +155,7 @@ export const decryptFromCredentials = async (
     accsResourceString: string;
     credentialRequirements: CredentialRequirements;
   },
-  userAddress: string
+  userAddress: string,
 ) => {
   let litNodeClient: LitNodeClient;
 
@@ -152,15 +164,19 @@ export const decryptFromCredentials = async (
     console.log("🔍 Loading credentials...");
     const credentials = loadCredentials();
     const matchingCredential = findMatchingCredential(
-      credentials, 
-      encryptedData.credentialRequirements, 
-      userAddress
+      credentials,
+      encryptedData.credentialRequirements,
+      userAddress,
     );
 
     if (!matchingCredential) {
-      throw new Error("No matching credential found for the specified requirements");
+      throw new Error(
+        "No matching credential found for the specified requirements",
+      );
     }
-    console.log(`✅ Found matching credential for ${matchingCredential.handle}`);
+    console.log(
+      `✅ Found matching credential for ${matchingCredential.handle}`,
+    );
 
     const ethersWallet = new ethers.Wallet(
       ETHEREUM_PRIVATE_KEY,
@@ -217,7 +233,9 @@ export const decryptFromCredentials = async (
       expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
       resourceAbilityRequests: [
         {
-          resource: new LitAccessControlConditionResource(encryptedData.accsResourceString),
+          resource: new LitAccessControlConditionResource(
+            encryptedData.accsResourceString,
+          ),
           ability: LIT_ABILITY.AccessControlConditionDecryption,
         },
         {
@@ -279,18 +297,25 @@ export const decryptFromCredentials = async (
 export const encryptToCredentialWithJWT = async (
   secret: string,
   credentialRequirements: CredentialRequirements,
-  userWallet: ethers.Wallet
+  userWallet: ethers.Wallet,
 ) => {
   let litNodeClient: LitNodeClient;
 
   try {
     console.log("🔒 Validating credential requirements...");
     validateGithubCredentialRequirements(credentialRequirements);
-    console.log(`✅ Credential requirements validated for trusted issuer: ${credentialRequirements.issuer}`);
+    console.log(
+      `✅ Credential requirements validated for trusted issuer: ${credentialRequirements.issuer}`,
+    );
 
     console.log("🔑 Generating user ES256K JWT for encryption...");
-    const userSignedJWT = await createEncryptionJWT(userWallet, credentialRequirements);
-    console.log(`✅ User JWT signed with DID: did:pkh:eip155:1:${userWallet.address}`);
+    const userSignedJWT = await createEncryptionJWT(
+      userWallet,
+      credentialRequirements,
+    );
+    console.log(
+      `✅ User JWT signed with DID: did:pkh:eip155:1:${userWallet.address}`,
+    );
 
     const ethersWallet = new ethers.Wallet(
       ETHEREUM_PRIVATE_KEY,
@@ -386,7 +411,7 @@ export const encryptToCredentialWithJWT = async (
       accsResourceString,
       credentialRequirements,
       userSignedJWT,
-      userAddress: userWallet.address
+      userAddress: userWallet.address,
     };
   } catch (error) {
     console.error(error);
@@ -408,38 +433,52 @@ export const decryptFromCredentialsWithJWT = async (
     userSignedJWT: string;
     userAddress: string;
   },
-  userWallet: ethers.Wallet
+  userWallet: ethers.Wallet,
 ) => {
   let litNodeClient: LitNodeClient;
 
   try {
     // Validate that the wallet matches the encrypted data's user
-    if (userWallet.address.toLowerCase() !== encryptedData.userAddress.toLowerCase()) {
+    if (
+      userWallet.address.toLowerCase() !==
+      encryptedData.userAddress.toLowerCase()
+    ) {
       throw new Error("User wallet does not match the encrypted data owner");
     }
 
     // Validate the stored user JWT is for the correct address
-    if (!validateJWTUserAddress(encryptedData.userSignedJWT, userWallet.address)) {
+    if (
+      !validateJWTUserAddress(encryptedData.userSignedJWT, userWallet.address)
+    ) {
       throw new Error("Stored user JWT does not match user address");
     }
 
     console.log("🔑 Generating fresh decryption JWT...");
-    const decryptionJWT = await createDecryptionJWT(userWallet, encryptedData.credentialRequirements);
-    console.log(`✅ Decryption JWT signed with DID: did:pkh:eip155:1:${userWallet.address}`);
+    const decryptionJWT = await createDecryptionJWT(
+      userWallet,
+      encryptedData.credentialRequirements,
+    );
+    console.log(
+      `✅ Decryption JWT signed with DID: did:pkh:eip155:1:${userWallet.address}`,
+    );
 
     // Load and find matching credential
     console.log("🔍 Loading credentials...");
     const credentials = loadCredentials();
     const matchingCredential = findMatchingCredential(
-      credentials, 
-      encryptedData.credentialRequirements, 
-      userWallet.address
+      credentials,
+      encryptedData.credentialRequirements,
+      userWallet.address,
     );
 
     if (!matchingCredential) {
-      throw new Error("No matching credential found for the specified requirements");
+      throw new Error(
+        "No matching credential found for the specified requirements",
+      );
     }
-    console.log(`✅ Found matching credential for ${matchingCredential.handle}`);
+    console.log(
+      `✅ Found matching credential for ${matchingCredential.handle}`,
+    );
 
     const ethersWallet = new ethers.Wallet(
       ETHEREUM_PRIVATE_KEY,
@@ -496,7 +535,9 @@ export const decryptFromCredentialsWithJWT = async (
       expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
       resourceAbilityRequests: [
         {
-          resource: new LitAccessControlConditionResource(encryptedData.accsResourceString),
+          resource: new LitAccessControlConditionResource(
+            encryptedData.accsResourceString,
+          ),
           ability: LIT_ABILITY.AccessControlConditionDecryption,
         },
         {
@@ -527,10 +568,12 @@ export const decryptFromCredentialsWithJWT = async (
     });
     console.log("✅ Generated the Session Signatures");
 
-    console.log("🔄 Executing enhanced Lit Action with dual-factor authentication...");
+    console.log(
+      "🔄 Executing enhanced Lit Action with dual-factor authentication...",
+    );
     const litActionResult = await litNodeClient.executeJs({
       sessionSigs,
-      code: litActionCodeWithES256K,
+      code: litActionCode,
       jsParams: {
         accessControlConditions: encryptedData.accessControlConditions,
         ciphertext: encryptedData.ciphertext,
@@ -538,8 +581,8 @@ export const decryptFromCredentialsWithJWT = async (
         credentialJWT: matchingCredential.jwt,
         credentialRequirements: encryptedData.credentialRequirements,
         userAddress: userWallet.address,
-        userSignedJWT: decryptionJWT,  // Fresh JWT for decryption
-        operationPurpose: "decrypt"
+        userSignedJWT: decryptionJWT, // Fresh JWT for decryption
+        operationPurpose: "decrypt",
       },
     });
     console.log("✅ Executed enhanced Lit Action");
