@@ -1,34 +1,20 @@
 {
-  "name": "decryption-in-lit-action",
-  "version": "1.0.0",
-  "main": "index.js",
-  "license": "MIT",
-  "type": "module",
+  "name": "lit-encryption-workspace",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "test": "npx @dotenvx/dotenvx run -- mocha test/**/*.spec.ts"
+    "dev": "bun run --cwd packages/ui dev",
+    "build": "bun run build:core && bun run build:app",
+    "build:core": "bun run --cwd packages/core build",
+    "build:app": "bun run --cwd packages/app build",
+    "test": "bun test",
+    "test:core": "bun run --cwd packages/core test",
+    "test:app": "bun run --cwd packages/app test"
   },
   "devDependencies": {
-    "@types/chai": "^4.3.19",
-    "@types/chai-json-schema": "^1.4.10",
-    "@types/mocha": "^10.0.8",
-    "@types/node": "^22.10.1",
-    "chai": "4.5.0",
-    "chai-json-schema": "^1.5.1",
-    "mocha": "^10.7.3",
-    "ts-node": "^10.9.2",
-    "tsc": "^2.0.4",
-    "tsx": "^4.19.1",
-    "typescript": "^5.6.2"
-  },
-  "dependencies": {
-    "@dotenvx/dotenvx": "^0.44.1",
-    "@lit-protocol/auth-helpers": "^7.0.4",
-    "@lit-protocol/constants": "^7.0.4",
-    "@lit-protocol/contracts-sdk": "^7.0.4",
-    "@lit-protocol/encryption": "^7.0.4",
-    "@lit-protocol/lit-node-client": "^7.0.4"
-  },
-  "trustedDependencies": [
-    "protobufjs"
-  ]
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  }
 }
