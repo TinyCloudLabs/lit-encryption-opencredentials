@@ -13,7 +13,7 @@ export const STORAGE_PROVIDERS: StorageProvider[] = [
     type: "tinycloud",
     enabled: true,
     config: {
-      prefix: "litapp",
+      prefix: "opencredentials",
       decentralized: true,
     },
   },

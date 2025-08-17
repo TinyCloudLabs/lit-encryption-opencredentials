@@ -65,31 +65,25 @@ export function WalletConnect({ onConnect, isConnecting, error }: WalletConnectP
             )}
             
             {!isConnected ? (
-              <div className="space-y-3">
-                <div className="text-center text-sm text-muted-foreground mb-4">
-                  Choose your wallet to connect
-                </div>
-                {connectors.map((connector) => (
-                  <Button
-                    key={connector.uid}
-                    onClick={() => handleConnectWallet(connector)}
-                    disabled={isWalletConnecting}
-                    variant="outline"
-                    className="w-full h-14 text-base justify-start"
-                  >
-                    {isWalletConnecting ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Connecting...
-                      </>
-                    ) : (
-                      <>
-                        <Wallet className="mr-2 h-5 w-5" />
-                        Connect {connector.name}
-                      </>
-                    )}
-                  </Button>
-                ))}
+              <div className="space-y-4">
+                <Button
+                  onClick={() => handleConnectWallet(connectors[0])}
+                  disabled={isWalletConnecting}
+                  className="w-full h-14 text-base"
+                  size="lg"
+                >
+                  {isWalletConnecting ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Connecting Wallet...
+                    </>
+                  ) : (
+                    <>
+                      <Wallet className="mr-2 h-5 w-5" />
+                      Connect Wallet
+                    </>
+                  )}
+                </Button>
               </div>
             ) : !isTinyCloudConnected ? (
               <div className="space-y-4">
@@ -128,20 +122,6 @@ export function WalletConnect({ onConnect, isConnecting, error }: WalletConnectP
               </div>
             )}
             
-            <div className="text-center pt-4">
-              <p className="text-sm text-muted-foreground">
-                Don't have a wallet?{' '}
-                <a 
-                  href="https://metamask.io/download/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary hover:text-primary/80 transition-colors duration-200 font-medium hover:underline"
-                >
-                  Get MetaMask
-                </a>
-                {' '}and start your Web3 journey
-              </p>
-            </div>
             
             <div className="flex items-center justify-center pt-2">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">

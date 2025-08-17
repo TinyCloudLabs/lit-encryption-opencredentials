@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { TinyCloudWeb } from '@tinycloudlabs/web-sdk';
 import { useAccount, useWalletClient } from 'wagmi';
+import { setTinyCloudWeb, initializeStorage } from '../lib/storage';
 
 interface TinyCloudContextType {
   tcw: TinyCloudWeb | null;
@@ -35,7 +36,7 @@ export const TinyCloudProvider: React.FC<TinyCloudProviderProps> = ({ children }
       name: chain.name,
       ensAddress: chain.contracts?.ensRegistry?.address,
     };
-    
+
     // Create a provider compatible with ethers v5
     const provider = {
       request: async ({ method, params }: { method: string; params?: unknown[] }) => {
@@ -66,7 +67,7 @@ export const TinyCloudProvider: React.FC<TinyCloudProviderProps> = ({ children }
 
     try {
       const signer = walletClientToEthers5Signer(walletClient);
-      
+
       const tcwConfig = {
         provider: {
           web3: {
@@ -75,16 +76,22 @@ export const TinyCloudProvider: React.FC<TinyCloudProviderProps> = ({ children }
         },
         modules: {
           storage: {
-            prefix: 'litapp'
+            prefix: 'opencredentials'
           }
         }
       };
 
       const tinyCloudWeb = new TinyCloudWeb(tcwConfig);
       await tinyCloudWeb.signIn();
-      
+
       setTcw(tinyCloudWeb);
-      
+
+      // Update storage manager with TinyCloud instance
+      setTinyCloudWeb(tinyCloudWeb);
+
+      // Check storage connectivity and load credentials
+      initializeStorage().catch(console.warn);
+
     } catch (err) {
       console.error('TinyCloud sign-in error:', err);
       setError(err instanceof Error ? err.message : 'Failed to sign in to TinyCloud');
@@ -98,6 +105,9 @@ export const TinyCloudProvider: React.FC<TinyCloudProviderProps> = ({ children }
       tcw.signOut?.();
       setTcw(null);
       setError(null);
+
+      // Keep TinyCloud as default provider even when signed out
+      // Operations will fallback to local storage automatically when TinyCloud is unavailable
     }
   };
 
