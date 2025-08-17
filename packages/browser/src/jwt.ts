@@ -1,4 +1,4 @@
-import * as ethers from "ethers";
+import { Wallet, keccak256, toUtf8Bytes, getBytes, isAddress, recoverAddress } from "ethers";
 import { createDIDPKH, validateDIDPKHAddress } from "./did";
 import { CredentialRequirements } from "./utils";
 
@@ -56,7 +56,7 @@ function generateNonce(): string {
  * Sign a JWT using ES256K (ECDSA with secp256k1)
  */
 export async function signES256KJWT(
-  wallet: ethers.Wallet,
+  wallet: Wallet,
   payload: Omit<ES256KJWTPayload, 'iss' | 'sub' | 'iat' | 'nonce'>,
   expirationMinutes: number = 5
 ): Promise<string> {
@@ -86,14 +86,14 @@ export async function signES256KJWT(
   
   // Create signing input
   const signingInput = `${encodedHeader}.${encodedPayload}`;
-  const messageHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(signingInput));
+  const messageHash = keccak256(toUtf8Bytes(signingInput));
   
   // Sign with wallet using raw message hash (for ES256K we want direct signature)
-  const signature = await wallet._signingKey().signDigest(messageHash);
+  const signature = wallet.signingKey.sign(messageHash);
   
   // Create 64-byte signature (32 bytes r + 32 bytes s)
-  const rBytes = ethers.utils.arrayify(signature.r);
-  const sBytes = ethers.utils.arrayify(signature.s);
+  const rBytes = getBytes(signature.r);
+  const sBytes = getBytes(signature.s);
   const rawSignature = new Uint8Array(64);
   rawSignature.set(rBytes, 0);
   rawSignature.set(sBytes, 32);
@@ -133,7 +133,7 @@ export async function verifyES256KJWT(jwt: string): Promise<{
   
   // Extract address from DID
   const signerAddress = payload.iss.split(':').pop();
-  if (!signerAddress || !ethers.utils.isAddress(signerAddress)) {
+  if (!signerAddress || !isAddress(signerAddress)) {
     throw new Error('Invalid address in JWT DID');
   }
   
@@ -145,7 +145,7 @@ export async function verifyES256KJWT(jwt: string): Promise<{
   
   // Recreate signing input
   const signingInput = `${encodedHeader}.${encodedPayload}`;
-  const messageHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(signingInput));
+  const messageHash = keccak256(toUtf8Bytes(signingInput));
   
   // Decode signature
   const rawSignature = base64urlDecode(encodedSignature);
@@ -164,7 +164,7 @@ export async function verifyES256KJWT(jwt: string): Promise<{
     try {
       const v = recoveryParam + 27;
       const signature = { r, s, v };
-      const recovered = ethers.utils.recoverAddress(messageHash, signature);
+      const recovered = recoverAddress(messageHash, signature);
       if (recovered.toLowerCase() === signerAddress.toLowerCase()) {
         recoveredAddress = recovered;
         break;
@@ -183,7 +183,7 @@ export async function verifyES256KJWT(jwt: string): Promise<{
  * Create a JWT for encryption operations
  */
 export async function createEncryptionJWT(
-  wallet: ethers.Wallet,
+  wallet: Wallet,
   credentialRequirements: CredentialRequirements
 ): Promise<string> {
   return signES256KJWT(wallet, {
@@ -198,7 +198,7 @@ export async function createEncryptionJWT(
  * Create a JWT for decryption operations
  */
 export async function createDecryptionJWT(
-  wallet: ethers.Wallet,
+  wallet: Wallet,
   credentialRequirements: CredentialRequirements
 ): Promise<string> {
   return signES256KJWT(wallet, {

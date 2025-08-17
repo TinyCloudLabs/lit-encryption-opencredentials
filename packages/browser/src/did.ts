@@ -1,4 +1,4 @@
-import * as ethers from "ethers";
+import { isAddress, getAddress } from "ethers";
 
 export interface DIDPKHAddress {
   did: string;
@@ -11,11 +11,11 @@ export interface DIDPKHAddress {
  * Format: did:pkh:eip155:1:0x{address}
  */
 export function createDIDPKH(address: string, chainId: number = 1): string {
-  if (!ethers.utils.isAddress(address)) {
+  if (!isAddress(address)) {
     throw new Error(`Invalid Ethereum address: ${address}`);
   }
   
-  const checksumAddress = ethers.utils.getAddress(address);
+  const checksumAddress = getAddress(address);
   return `did:pkh:eip155:${chainId}:${checksumAddress}`;
 }
 
@@ -33,13 +33,13 @@ export function parseDIDPKH(did: string): DIDPKHAddress {
   const [, chainIdStr, address] = match;
   const chainId = parseInt(chainIdStr, 10);
   
-  if (!ethers.utils.isAddress(address)) {
+  if (!isAddress(address)) {
     throw new Error(`Invalid address in DID:PKH: ${address}`);
   }
   
   return {
     did,
-    address: ethers.utils.getAddress(address),
+    address: getAddress(address),
     chainId
   };
 }
@@ -76,5 +76,5 @@ export function isValidDIDPKH(did: string): boolean {
   }
   
   const [, , address] = match;
-  return ethers.utils.isAddress(address);
+  return isAddress(address);
 }
