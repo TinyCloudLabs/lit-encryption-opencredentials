@@ -10,6 +10,7 @@
     "build": "bun run build:app",
     "build:core": "bun run --cwd packages/core build",
     "build:app": "bun run --cwd packages/app build",
+    "build:gh-pages": "bun run --cwd packages/app create-mock-content && bun run build:app",
     "test": "bun test",
     "test:core": "bun run --cwd packages/core test",
     "test:app": "bun run --cwd packages/app test"
