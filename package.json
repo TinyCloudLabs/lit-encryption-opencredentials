@@ -5,7 +5,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "bun run --cwd packages/ui dev",
+    "dev": "bun run --cwd packages/app dev",
     "build": "bun run build:core && bun run build:app",
     "build:core": "bun run --cwd packages/core build",
     "build:app": "bun run --cwd packages/app build",
