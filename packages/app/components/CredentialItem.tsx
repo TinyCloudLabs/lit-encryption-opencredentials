@@ -46,7 +46,12 @@ export function CredentialItem({
   isRequired = false,
   disabled = false 
 }: CredentialItemProps) {
-  const statusConfig = STATUS_CONFIG[credential.status];
+  // Extract credential type from parsed.type array
+  const credentialType = credential.parsed.type.find(t => t !== 'VerifiableCredential') || 'Unknown';
+  
+  // Calculate status based on verification
+  const status = credential.verified ? 'valid' : 'invalid';
+  const statusConfig = STATUS_CONFIG[status];
   const StatusIcon = statusConfig.icon;
   
   const formatDate = (dateString: string) => {
@@ -59,7 +64,38 @@ export function CredentialItem({
     return match ? match[1].replace(/([a-z])([A-Z])/g, '$1 $2') : issuerDid;
   };
 
-  const isInteractable = !disabled && (credential.status === 'valid' || credential.status === 'expiring');
+  // Calculate expiration (default to 1 year from issuance)
+  const calculateExpiresAt = () => {
+    const issuedDate = new Date(credential.issuedAt);
+    return new Date(issuedDate.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+  };
+
+  // Extract claims from credentialSubject and evidence
+  const extractClaims = () => {
+    const claims: Record<string, any> = {};
+    
+    // Add credentialSubject claims (excluding id)
+    if (credential.parsed.credentialSubject) {
+      Object.entries(credential.parsed.credentialSubject).forEach(([key, value]) => {
+        if (key !== 'id') {
+          claims[key] = value;
+        }
+      });
+    }
+    
+    // Add evidence claims (excluding type and timestamp)
+    if (credential.parsed.evidence) {
+      Object.entries(credential.parsed.evidence).forEach(([key, value]) => {
+        if (!['type', 'timestamp'].includes(key)) {
+          claims[key] = value;
+        }
+      });
+    }
+    
+    return claims;
+  };
+
+  const isInteractable = !disabled && credential.verified;
 
   return (
     <Card className={`transition-all ${isSelected ? 'ring-2 ring-primary' : ''} ${
@@ -81,9 +117,9 @@ export function CredentialItem({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2 mb-2">
               <div>
-                <h4 className="font-medium truncate">{credential.credentialType}</h4>
+                <h4 className="font-medium truncate">{credentialType}</h4>
                 <p className="text-sm text-muted-foreground truncate">
-                  {extractIssuerName(credential.issuer)}
+                  {extractIssuerName(credential.parsed.issuer)}
                 </p>
               </div>
               
@@ -96,7 +132,7 @@ export function CredentialItem({
 
             {/* Claims */}
             <div className="space-y-1 mb-3">
-              {Object.entries(credential.claims).map(([key, value]) => (
+              {Object.entries(extractClaims()).map(([key, value]) => (
                 <div key={key} className="text-xs text-muted-foreground">
                   <span className="font-medium">{key}:</span> {String(value)}
                 </div>
@@ -106,7 +142,7 @@ export function CredentialItem({
             {/* Dates */}
             <div className="flex gap-4 text-xs text-muted-foreground">
               <span>Issued: {formatDate(credential.issuedAt)}</span>
-              <span>Expires: {formatDate(credential.expiresAt)}</span>
+              <span>Expires: {formatDate(calculateExpiresAt())}</span>
             </div>
 
             {/* Required indicator */}

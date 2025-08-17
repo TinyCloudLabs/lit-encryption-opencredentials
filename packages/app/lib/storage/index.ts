@@ -141,7 +141,15 @@ export class TinyCloudStorageProvider implements IStorageProvider {
       if (!result.data) return null;
 
       const parsed = JSON.parse(result.data);
-      return parsed.data as T;
+      
+      // Handle different storage formats
+      if (parsed.data !== undefined) {
+        // If data is wrapped in a data property
+        return parsed.data as T;
+      } else {
+        // If data is stored directly
+        return parsed as T;
+      }
     } catch (error) {
       console.warn(`Failed to load data for key: ${key}`, error);
       return null;
@@ -337,7 +345,7 @@ export class StorageManager {
         return [];
       }
 
-      // Update cache and return credentials
+      // Update cache and return credentials directly (no transformation needed)
       this.cache.set(STORAGE_KEYS.CREDENTIALS, credentials);
       return credentials;
     } catch (error) {

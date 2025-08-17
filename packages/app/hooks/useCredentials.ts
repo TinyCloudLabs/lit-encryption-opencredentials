@@ -24,13 +24,8 @@ export function useCredentials() {
       // Load from TinyCloud storage
       const loadedCredentials = await storageManager.loadCredentials();
       
-      // Validate and process credentials
-      const validatedCredentials = loadedCredentials.map(cred => ({
-        ...cred,
-        status: validateCredentialStatus(cred) as any
-      }));
-      
-      setCredentials(validatedCredentials);
+      // Credentials are already in the correct format from TinyCloud
+      setCredentials(loadedCredentials);
     } catch (err) {
       console.error('Failed to load credentials:', err);
       setError('Failed to load credentials from TinyCloud');
@@ -41,38 +36,30 @@ export function useCredentials() {
     }
   }, [isConnected]);
 
-  // Validate credential status
-  const validateCredentialStatus = (credential: Credential): Credential['status'] => {
-    const now = new Date();
-    const expiresAt = new Date(credential.expiresAt);
-    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    
-    if (expiresAt < now) {
-      return 'invalid';
-    } else if (expiresAt < sevenDaysFromNow) {
-      return 'expiring';
-    }
-    
-    // Check if signature is valid (mock implementation)
-    if (!credential.signature || credential.signature.includes('invalid')) {
-      return 'invalid';
-    }
-    
-    return 'valid';
-  };
-
   // Check if credentials meet flow requirements
   const checkCredentialMatch = useCallback((
     credential: Credential, 
     requirement: CredentialRequirement
   ): boolean => {
-    if (credential.issuer !== requirement.issuer) return false;
-    if (credential.credentialType !== requirement.credentialType) return false;
-    if (credential.status !== 'valid') return false;
+    // Check issuer
+    if (credential.parsed.issuer !== requirement.issuer) return false;
+    
+    // Check credential type
+    const credentialType = credential.parsed.type.find(t => t !== 'VerifiableCredential');
+    if (credentialType !== requirement.credentialType) return false;
+    
+    // Check if verified
+    if (!credential.verified) return false;
     
     // Check claims match
     for (const [key, value] of Object.entries(requirement.claims)) {
-      if (credential.claims[key] !== value) return false;
+      // Check in credentialSubject
+      if (credential.parsed.credentialSubject?.[key] !== value) {
+        // Also check in evidence
+        if (credential.parsed.evidence?.[key] !== value) {
+          return false;
+        }
+      }
     }
     
     return true;

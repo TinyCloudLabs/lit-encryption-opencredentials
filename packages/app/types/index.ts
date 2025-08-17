@@ -2,18 +2,11 @@
 
 export interface Credential {
   id: string;
-  issuer: string;
-  credentialType: string;
-  claims: Record<string, any>;
+  subject: string; // did:pkh:eip155:1:0x{address}
+  jwt: string;
   issuedAt: string;
-  expiresAt: string;
-  signature: string;
-  status: 'valid' | 'expiring' | 'invalid' | 'not-valid-for-use';
-  // Add fields needed for TinyCloud integration
-  subject?: string; // did:pkh:eip155:1:0x{address}
-  jwt?: string;
-  verified?: boolean; // JWT signature verification result
-  parsed?: {
+  verified: boolean;
+  parsed: {
     type: string[];
     issuer: string;
     credentialSubject: any;

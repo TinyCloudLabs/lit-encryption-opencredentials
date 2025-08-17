@@ -87,13 +87,23 @@ export function CredentialAccess({ flow, onBack, onContentSuccess, walletAddress
     const other: Credential[] = [];
     
     credentials.forEach(credential => {
-      const isMatching = flow.credentialRequirements.some(requirement =>
-        credential.issuer === requirement.issuer &&
-        credential.credentialType === requirement.credentialType &&
-        Object.entries(requirement.claims).every(([key, value]) =>
-          credential.claims[key] === value
-        )
-      );
+      const isMatching = flow.credentialRequirements.some(requirement => {
+        // Check issuer
+        if (credential.parsed.issuer !== requirement.issuer) return false;
+        
+        // Check credential type
+        const credentialType = credential.parsed.type.find(t => t !== 'VerifiableCredential');
+        if (credentialType !== requirement.credentialType) return false;
+        
+        // Check claims
+        return Object.entries(requirement.claims).every(([key, value]) => {
+          // Check in credentialSubject first
+          if (credential.parsed.credentialSubject?.[key] === value) return true;
+          // Then check in evidence
+          if (credential.parsed.evidence?.[key] === value) return true;
+          return false;
+        });
+      });
       
       if (isMatching) {
         matching.push(credential);
@@ -384,10 +394,11 @@ export function CredentialAccess({ flow, onBack, onContentSuccess, walletAddress
                           credential={credential}
                           isSelected={selectedCredentialIds.includes(credential.id)}
                           onSelectionChange={handleCredentialSelection}
-                          isRequired={flow.credentialRequirements.some(req =>
-                            req.issuer === credential.issuer &&
-                            req.credentialType === credential.credentialType
-                          )}
+                          isRequired={flow.credentialRequirements.some(req => {
+                            const credentialType = credential.parsed.type.find(t => t !== 'VerifiableCredential');
+                            return req.issuer === credential.parsed.issuer &&
+                                   req.credentialType === credentialType;
+                          })}
                         />
                       ))}
                     </div>

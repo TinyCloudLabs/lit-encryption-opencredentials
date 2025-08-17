@@ -12,9 +12,7 @@ export const flows: Flow[] = [
       {
         issuer: "did:web:rebasedemokey.pages.dev",
         credentialType: "GitHubVerification",
-        claims: {
-          githubHandle: "verified-developer",
-        },
+        claims: {},
       },
       {
         issuer: "did:web:issuer.tinycloud.xyz",
@@ -37,9 +35,7 @@ export const flows: Flow[] = [
       {
         issuer: "did:web:rebasedemokey.pages.dev",
         credentialType: "GitHubVerification",
-        claims: {
-          githubHandle: "verified-developer",
-        },
+        claims: {},
       },
     ],
     accessLevel: "basic",
