@@ -50,12 +50,16 @@ export function CredentialAccess({ flow, onBack, onContentSuccess, walletAddress
       
       flow.credentialRequirements.forEach(requirement => {
         const match = credentials.find(cred =>
-          cred.issuer === requirement.issuer &&
-          cred.credentialType === requirement.credentialType &&
-          cred.status === 'valid' &&
-          Object.entries(requirement.claims).every(([key, value]) => 
-            cred.claims[key] === value
-          )
+          cred.parsed.issuer === requirement.issuer &&
+          cred.parsed.type.find(t => t !== 'VerifiableCredential') === requirement.credentialType &&
+          cred.verified &&
+          Object.entries(requirement.claims).every(([key, value]) => {
+            // Check in credentialSubject
+            if (cred.parsed.credentialSubject?.[key] === value) return true;
+            // Check in evidence
+            if (cred.parsed.evidence?.[key] === value) return true;
+            return false;
+          })
         );
         
         if (match && !autoSelected.includes(match.id)) {
@@ -448,10 +452,7 @@ export function CredentialAccess({ flow, onBack, onContentSuccess, walletAddress
                           {otherCredentials.map(credential => (
                             <CredentialItem
                               key={credential.id}
-                              credential={{
-                                ...credential,
-                                status: 'not-valid-for-use'
-                              }}
+                              credential={credential}
                               isSelected={selectedCredentialIds.includes(credential.id)}
                               onSelectionChange={handleCredentialSelection}
                               disabled={true}

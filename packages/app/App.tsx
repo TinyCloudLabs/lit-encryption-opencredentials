@@ -10,6 +10,8 @@ import { useTinyCloud } from './contexts/TinyCloudContext';
 import { Flow } from './types';
 import { flows } from './data/flows';
 import { Toaster } from './components/ui/sonner';
+import { initializeDemoContent, hasEncryptedContent } from './lib/encryption';
+import { Wallet } from 'ethers';
 
 type AppState = 'connecting' | 'flows' | 'access' | 'content' | 'settings';
 
@@ -43,6 +45,36 @@ export default function App() {
       localStorage.removeItem('walletAddress');
     }
   }, [walletState.address]);
+
+  // Initialize encrypted content when user is fully connected
+  useEffect(() => {
+    const initializeContent = async () => {
+      if (!isFullyConnected || !walletState.address) return;
+
+      try {
+        // Check if content is already initialized
+        const hasContent = flows.every(flow => hasEncryptedContent(flow.id));
+        if (hasContent) {
+          console.log('Encrypted content already exists');
+          return;
+        }
+
+        console.log('Initializing encrypted demo content...');
+        
+        // Create a demo wallet for encryption (in production, use user's wallet)
+        const demoPrivateKey = import.meta.env.VITE_DEMO_PRIVATE_KEY || '0x' + 'a'.repeat(64);
+        const demoWallet = new Wallet(demoPrivateKey);
+        
+        await initializeDemoContent(demoWallet);
+        console.log('Demo content initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize demo content:', error);
+        // Non-critical error, don't block the app
+      }
+    };
+
+    initializeContent();
+  }, [isFullyConnected, walletState.address]);
 
   const handleSelectFlow = (flow: Flow) => {
     setSelectedFlow(flow);

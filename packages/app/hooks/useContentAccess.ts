@@ -1,8 +1,18 @@
 import { useState, useCallback } from 'react';
-import { AccessStep, Flow } from '../types';
-import { mockDecryptedContent } from '../data/content';
+import { AccessStep, Flow, Credential } from '../types';
+import { useAccount, useWalletClient } from 'wagmi';
+import { 
+  decryptFromCredentialsWithJWT,
+  CredentialRequirements,
+  validateGithubCredentialRequirements
+} from '@lit-encryption/core';
+import { storageManager } from '../lib/storage';
+import { useTinyCloud } from '../contexts/TinyCloudContext';
 
 export function useContentAccess(signMessage: (message: string) => Promise<string>) {
+  const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
+  const { tcw } = useTinyCloud();
   const [accessSteps, setAccessSteps] = useState<AccessStep[]>([
     { id: 'signature', label: 'Awaiting signature', status: 'pending' },
     { id: 'verification', label: 'Verifying credentials', status: 'pending' },
@@ -69,12 +79,25 @@ export function useContentAccess(signMessage: (message: string) => Promise<strin
       ));
       
       console.log('Starting verification process...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Mock credential verification
+      // Real credential verification
       if (selectedCredentialIds.length === 0) {
         throw new Error('No credentials selected');
       }
+      
+      // Load user's credentials
+      const userCredentials = await storageManager.loadCredentials();
+      const selectedCredentials = userCredentials.filter(cred => 
+        selectedCredentialIds.includes(cred.id)
+      );
+      
+      // Verify credentials match flow requirements
+      const validationErrors = await validateCredentialsForFlow(selectedCredentials, flow);
+      if (validationErrors.length > 0) {
+        throw new Error(`Credential validation failed: ${validationErrors.join(', ')}`);
+      }
+      
+      console.log('Credentials verified successfully');
       
       setAccessSteps(prev => prev.map(step => 
         step.id === 'verification' ? { ...step, status: 'completed' } : step
@@ -86,13 +109,47 @@ export function useContentAccess(signMessage: (message: string) => Promise<strin
       ));
       
       console.log('Starting decryption process...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Mock content decryption
-      const content = mockDecryptedContent[flow.id];
-      if (!content) {
-        throw new Error('Content not found');
+      // Load encrypted content for this flow
+      const encryptedData = await loadEncryptedContent(flow.id);
+      if (!encryptedData) {
+        throw new Error('No encrypted content found for this flow. Content may not be initialized yet.');
       }
+      
+      // Create ethers wallet for Lit Protocol
+      const ethersWallet = await createEthersWallet();
+      if (!ethersWallet) {
+        throw new Error('Unable to create wallet for decryption');
+      }
+      
+      // Decrypt content using Lit Protocol
+      console.log('Decrypting with Lit Protocol...');
+      const litActionResult = await decryptFromCredentialsWithJWT(
+        encryptedData,
+        ethersWallet
+      );
+      
+      // Handle Lit Action response
+      const response = litActionResult.response;
+      if (typeof response === 'string') {
+        throw new Error('Unexpected string response from Lit Action');
+      }
+      
+      if (!response || typeof response !== 'object' || !('success' in response)) {
+        throw new Error('Invalid response format from Lit Action');
+      }
+      
+      const typedResponse = response as { success: boolean; error?: string; secret?: string };
+      
+      if (!typedResponse.success) {
+        throw new Error(typedResponse.error || 'Decryption failed');
+      }
+      
+      const content = typedResponse.secret;
+      if (!content) {
+        throw new Error('No secret returned from Lit Action');
+      }
+      console.log('Content decrypted successfully');
       
       setAccessSteps(prev => prev.map(step => 
         step.id === 'decryption' ? { ...step, status: 'completed' } : step
@@ -169,6 +226,100 @@ export function useContentAccess(signMessage: (message: string) => Promise<strin
       setError(null);
     }
   }, [accessSteps]);
+
+  // Helper function to validate credentials for flow requirements
+  const validateCredentialsForFlow = async (
+    credentials: Credential[], 
+    flow: Flow
+  ): Promise<string[]> => {
+    const errors: string[] = [];
+    
+    try {
+      for (const requirement of flow.credentialRequirements) {
+        // Convert to core format for validation
+        const coreRequirement: CredentialRequirements = {
+          issuer: requirement.issuer,
+          credentialType: requirement.credentialType,
+          claims: requirement.claims
+        };
+        
+        // Validate requirement format
+        try {
+          validateGithubCredentialRequirements(coreRequirement);
+        } catch (error) {
+          errors.push(`Invalid requirement: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          continue;
+        }
+        
+        // Check if any credential matches this requirement
+        const match = credentials.find(cred => {
+          // Check issuer
+          if (cred.parsed.issuer !== coreRequirement.issuer) return false;
+          
+          // Check credential type
+          const credentialType = cred.parsed.type.find(t => t !== 'VerifiableCredential');
+          if (credentialType !== coreRequirement.credentialType) return false;
+          
+          // Check if verified
+          if (!cred.verified) return false;
+          
+          // Check claims match (if any)
+          if (coreRequirement.claims && Object.keys(coreRequirement.claims).length > 0) {
+            for (const [key, value] of Object.entries(coreRequirement.claims)) {
+              // Check in credentialSubject
+              if (cred.parsed.credentialSubject?.[key] !== value) {
+                // Also check in evidence
+                if (cred.parsed.evidence?.[key] !== value) {
+                  return false;
+                }
+              }
+            }
+          }
+          
+          return true;
+        });
+        
+        if (!match) {
+          errors.push(`No valid credential found for requirement: ${requirement.credentialType} from ${requirement.issuer}`);
+        }
+      }
+    } catch (error) {
+      errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+    
+    return errors;
+  };
+
+  // Helper function to load encrypted content
+  const loadEncryptedContent = async (flowId: string) => {
+    try {
+      const stored = localStorage.getItem(`encrypted_content_${flowId}`);
+      return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+      console.warn('Failed to load encrypted content:', error);
+      return null;
+    }
+  };
+
+  // Helper function to create ethers wallet for Lit Protocol
+  const createEthersWallet = async () => {
+    try {
+      if (!walletClient || !address) {
+        throw new Error('Wallet not connected');
+      }
+
+      // For demo purposes, we'll use a hardcoded private key
+      // In production, you'd want to use the wallet client more securely
+      const demoPrivateKey = process.env.VITE_DEMO_PRIVATE_KEY || '0x' + 'a'.repeat(64);
+      
+      // Import ethers dynamically
+      const { Wallet } = await import('ethers');
+      return new Wallet(demoPrivateKey);
+    } catch (error) {
+      console.error('Failed to create ethers wallet:', error);
+      return null;
+    }
+  };
 
   return {
     accessSteps,
