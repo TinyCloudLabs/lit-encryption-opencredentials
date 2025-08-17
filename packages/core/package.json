@@ -13,9 +13,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "npx tsc",
     "test": "npx @dotenvx/dotenvx run -- mocha test/**/*.spec.ts",
-    "dev": "tsc --watch"
+    "dev": "npx tsc --watch"
   },
   "devDependencies": {
     "@types/chai": "^4.3.19",
@@ -26,7 +26,6 @@
     "chai-json-schema": "^1.5.1",
     "mocha": "^10.7.3",
     "ts-node": "^10.9.2",
-    "tsc": "^2.0.4",
     "tsx": "^4.19.1",
     "typescript": "^5.6.2"
   },
