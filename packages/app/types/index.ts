@@ -9,6 +9,18 @@ export interface Credential {
   expiresAt: string;
   signature: string;
   status: 'valid' | 'expiring' | 'invalid' | 'not-valid-for-use';
+  // Add fields needed for TinyCloud integration
+  subject?: string; // did:pkh:eip155:1:0x{address}
+  jwt?: string;
+  verified?: boolean; // JWT signature verification result
+  parsed?: {
+    type: string[];
+    issuer: string;
+    credentialSubject: any;
+    evidence?: any;
+    issuanceDate: string;
+    handle?: string; // For social media credentials
+  };
 }
 
 export interface CredentialRequirement {
@@ -57,5 +69,26 @@ export interface AppSettings {
   notificationPreferences: {
     showSuccess: boolean;
     showErrors: boolean;
+  };
+}
+
+// Additional types needed for TinyCloud integration
+export interface StorageProvider {
+  name: string;
+  type: string;
+  enabled: boolean;
+  config: Record<string, any>;
+}
+
+export interface UserProfile {
+  did: string;
+  walletAddress: string;
+  credentials: Credential[];
+  createdAt: string;
+  lastUpdated: string;
+  settings: {
+    defaultStorage: string;
+    autoSync: boolean;
+    notifications: boolean;
   };
 }

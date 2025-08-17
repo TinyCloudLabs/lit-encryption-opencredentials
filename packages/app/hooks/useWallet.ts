@@ -1,64 +1,59 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useAccount, useConnect, useDisconnect, useSignMessage } from 'wagmi';
 import { WalletState } from '../types';
+import { useTinyCloud } from '../contexts/TinyCloudContext';
 
-// Mock wallet connection hook for demonstration
+// Real wallet connection hook using wagmi
 export function useWallet() {
-  const [walletState, setWalletState] = useState<WalletState>({
-    isConnected: false,
-    address: null,
-    isConnecting: false,
-    error: null
-  });
+  const { address, isConnected, isConnecting } = useAccount();
+  const { connect, connectors, error: connectError } = useConnect();
+  const { disconnect } = useDisconnect();
+  const { signMessageAsync } = useSignMessage();
+  const { signIn, isConnecting: isTinyCloudConnecting, error: tinyCloudError } = useTinyCloud();
+
+  // Create wallet state object compatible with existing interface
+  const walletState: WalletState = {
+    isConnected,
+    address: address || null,
+    isConnecting: isConnecting || isTinyCloudConnecting,
+    error: connectError?.message || tinyCloudError || null
+  };
 
   const connectWallet = useCallback(async (walletType?: string) => {
-    setWalletState(prev => ({ ...prev, isConnecting: true, error: null }));
-    
     try {
-      // Simulate wallet connection delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Step 1: Connect wallet if not already connected
+      if (!isConnected) {
+        const injectedConnector = connectors.find(c => c.type === 'injected');
+        if (injectedConnector) {
+          await connect({ connector: injectedConnector });
+        }
+      }
       
-      // Mock successful connection
-      const mockAddress = '0x1234567890123456789012345678901234567890';
-      setWalletState({
-        isConnected: true,
-        address: mockAddress,
-        isConnecting: false,
-        error: null
-      });
+      // Step 2: Sign into TinyCloud
+      await signIn();
     } catch (error) {
-      setWalletState(prev => ({
-        ...prev,
-        isConnecting: false,
-        error: 'Failed to connect wallet'
-      }));
+      console.error('Wallet connection failed:', error);
+      throw error;
     }
-  }, []);
+  }, [isConnected, connect, connectors, signIn]);
 
   const disconnectWallet = useCallback(() => {
-    setWalletState({
-      isConnected: false,
-      address: null,
-      isConnecting: false,
-      error: null
-    });
-  }, []);
+    disconnect();
+  }, [disconnect]);
 
-  const signMessage = useCallback(async (message: string) => {
-    if (!walletState.isConnected) {
+  const signMessage = useCallback(async (message: string): Promise<string> => {
+    if (!isConnected || !address) {
       throw new Error('Wallet not connected');
     }
     
-    console.log('Simulating wallet signature for message:', message);
-    
-    // Simulate user reviewing and signing the message
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Mock signature (in real implementation, this would be from the wallet)
-    const signature = 'mock-signature-' + Date.now() + Math.random().toString(36).substr(2, 9);
-    console.log('Mock signature generated:', signature);
-    
-    return signature;
-  }, [walletState.isConnected]);
+    try {
+      const signature = await signMessageAsync({ message });
+      return signature;
+    } catch (error) {
+      console.error('Message signing failed:', error);
+      throw error;
+    }
+  }, [isConnected, address, signMessageAsync]);
 
   return {
     walletState,

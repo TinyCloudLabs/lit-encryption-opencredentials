@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { AccessStep, Flow } from '../types';
-import { mockDecryptedContent } from '../data/mockData';
+import { mockDecryptedContent } from '../data/content';
 
 export function useContentAccess(signMessage: (message: string) => Promise<string>) {
   const [accessSteps, setAccessSteps] = useState<AccessStep[]>([

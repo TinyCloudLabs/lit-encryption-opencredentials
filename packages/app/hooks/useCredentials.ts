@@ -1,34 +1,45 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Credential, CredentialRequirement } from '../types';
-import { mockCredentials } from '../data/mockData';
+import { storageManager } from '../lib/storage';
+import { useTinyCloud } from '../contexts/TinyCloudContext';
 
 export function useCredentials() {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { tcw, isConnected } = useTinyCloud();
 
-  // Load credentials (mock implementation)
+  // Load credentials from TinyCloud storage
   const loadCredentials = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
-      // Simulate loading delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Only load if TinyCloud is connected
+      if (!isConnected) {
+        setCredentials([]);
+        return;
+      }
+
+      // Load from TinyCloud storage
+      const loadedCredentials = await storageManager.loadCredentials();
       
       // Validate and process credentials
-      const validatedCredentials = mockCredentials.map(cred => ({
+      const validatedCredentials = loadedCredentials.map(cred => ({
         ...cred,
         status: validateCredentialStatus(cred) as any
       }));
       
       setCredentials(validatedCredentials);
     } catch (err) {
-      setError('Failed to load credentials');
+      console.error('Failed to load credentials:', err);
+      setError('Failed to load credentials from TinyCloud');
+      // Fallback to empty array on error
+      setCredentials([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isConnected]);
 
   // Validate credential status
   const validateCredentialStatus = (credential: Credential): Credential['status'] => {
@@ -122,10 +133,17 @@ export function useCredentials() {
     };
   }, [credentials, checkCredentialMatch]);
 
-  // Load credentials on mount
+  // Update storage manager when TinyCloud connects
   useEffect(() => {
-    loadCredentials();
-  }, [loadCredentials]);
+    if (tcw && isConnected) {
+      storageManager.setTinyCloudWeb(tcw);
+      loadCredentials();
+    } else {
+      // Clear credentials when disconnected
+      setCredentials([]);
+      setLoading(false);
+    }
+  }, [tcw, isConnected, loadCredentials]);
 
   return {
     credentials,

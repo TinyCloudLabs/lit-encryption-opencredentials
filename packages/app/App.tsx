@@ -6,8 +6,9 @@ import { UnlockedContent } from './components/UnlockedContent';
 import { Settings } from './components/Settings';
 import { useWallet } from './hooks/useWallet';
 import { useSettings } from './hooks/useSettings';
+import { useTinyCloud } from './contexts/TinyCloudContext';
 import { Flow } from './types';
-import { mockFlows } from './data/mockData';
+import { flows } from './data/flows';
 import { Toaster } from './components/ui/sonner';
 
 type AppState = 'connecting' | 'flows' | 'access' | 'content' | 'settings';
@@ -15,12 +16,16 @@ type AppState = 'connecting' | 'flows' | 'access' | 'content' | 'settings';
 export default function App() {
   const { walletState, connectWallet, disconnectWallet, signMessage } = useWallet();
   const { settings, loading: settingsLoading, updateSettings } = useSettings();
+  const { isConnected: isTinyCloudConnected } = useTinyCloud();
   const [appState, setAppState] = useState<AppState>('connecting');
   const [selectedFlow, setSelectedFlow] = useState<Flow | null>(null);
 
-  // Update app state based on wallet connection
+  // Check if user is fully connected (wallet + TinyCloud)
+  const isFullyConnected = walletState.isConnected && isTinyCloudConnected;
+
+  // Update app state based on full connection status
   useEffect(() => {
-    if (walletState.isConnected) {
+    if (isFullyConnected) {
       if (appState === 'connecting') {
         setAppState('flows');
       }
@@ -28,7 +33,7 @@ export default function App() {
       setAppState('connecting');
       setSelectedFlow(null);
     }
-  }, [walletState.isConnected, appState]);
+  }, [isFullyConnected, appState]);
 
   // Store wallet address in localStorage for caching
   useEffect(() => {
@@ -89,7 +94,7 @@ export default function App() {
   }
 
   // Render current state
-  if (!walletState.isConnected || appState === 'connecting') {
+  if (!isFullyConnected || appState === 'connecting') {
     return (
       <>
         <WalletConnect
@@ -138,7 +143,7 @@ export default function App() {
     return (
       <>
         <FlowSelection
-          flows={mockFlows}
+          flows={flows}
           onSelectFlow={handleSelectFlow}
           onViewContent={handleViewContent}
           onShowSettings={handleShowSettings}
