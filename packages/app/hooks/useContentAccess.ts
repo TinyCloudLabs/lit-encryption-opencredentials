@@ -4,8 +4,9 @@ import { useAccount, useWalletClient } from 'wagmi';
 import { 
   decryptFromCredentialsWithJWT,
   CredentialRequirements,
-  validateGithubCredentialRequirements
-} from '@lit-encryption/core';
+  validateGithubCredentialRequirements,
+  ParsedCredential
+} from '../../browser/src/index';
 import { storageManager } from '../lib/storage';
 import { useTinyCloud } from '../contexts/TinyCloudContext';
 
@@ -116,17 +117,23 @@ export function useContentAccess(signMessage: (message: string) => Promise<strin
         throw new Error('No encrypted content found for this flow. Content may not be initialized yet.');
       }
       
-      // Create ethers wallet for Lit Protocol
-      const ethersWallet = await createEthersWallet();
-      if (!ethersWallet) {
-        throw new Error('Unable to create wallet for decryption');
-      }
-      
-      // Decrypt content using Lit Protocol
-      console.log('Decrypting with Lit Protocol...');
+      // Convert credentials to ParsedCredential format for browser package
+      const parsedCredentials: ParsedCredential[] = selectedCredentials.map(cred => ({
+        jwt: cred.jwt || '',
+        issuer: cred.parsed.issuer,
+        subject: cred.parsed.credentialSubject?.id || cred.subject,
+        credentialSubject: cred.parsed.credentialSubject,
+        evidence: cred.parsed.evidence,
+        issuanceDate: cred.parsed.issuanceDate || cred.issuedAt,
+        handle: cred.parsed.evidence?.handle || cred.parsed.credentialSubject?.handle
+      }));
+
+      // Decrypt content using credentials only (no wallet needed)
+      console.log('Decrypting with credentials...');
       const litActionResult = await decryptFromCredentialsWithJWT(
         encryptedData,
-        ethersWallet
+        parsedCredentials,
+        address // Pass user address for optional verification
       );
       
       // Handle Lit Action response
@@ -189,7 +196,7 @@ export function useContentAccess(signMessage: (message: string) => Promise<strin
         cache[walletAddress][flowId] = {
           content,
           timestamp: Date.now(),
-          expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+          expiresAt: Date.now() + (60 * 1000) // 60 seconds
         };
         
         localStorage.setItem('contentCache', JSON.stringify(cache));
@@ -207,7 +214,7 @@ export function useContentAccess(signMessage: (message: string) => Promise<strin
       if (walletAddress && cache[walletAddress] && cache[walletAddress][flowId]) {
         const cachedItem = cache[walletAddress][flowId];
         
-        // Check if cache is still valid
+        // Check if cache is still valid (60 seconds)
         if (cachedItem.expiresAt > Date.now()) {
           return cachedItem.content;
         }
@@ -290,36 +297,54 @@ export function useContentAccess(signMessage: (message: string) => Promise<strin
     return errors;
   };
 
-  // Helper function to load encrypted content
+  // Helper function to load encrypted content from public JSON file
   const loadEncryptedContent = async (flowId: string) => {
     try {
-      const stored = localStorage.getItem(`encrypted_content_${flowId}`);
-      return stored ? JSON.parse(stored) : null;
-    } catch (error) {
-      console.warn('Failed to load encrypted content:', error);
-      return null;
-    }
-  };
-
-  // Helper function to create ethers wallet for Lit Protocol
-  const createEthersWallet = async () => {
-    try {
-      if (!walletClient || !address) {
-        throw new Error('Wallet not connected');
+      // First try to fetch from public encrypted content
+      const response = await fetch('/encrypted-content.json');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch encrypted content: ${response.status}`);
       }
-
-      // For demo purposes, we'll use a hardcoded private key
-      // In production, you'd want to use the wallet client more securely
-      const demoPrivateKey = process.env.VITE_DEMO_PRIVATE_KEY || '0x' + 'a'.repeat(64);
       
-      // Import ethers dynamically
-      const { Wallet } = await import('ethers');
-      return new Wallet(demoPrivateKey);
+      const encryptedData = await response.json();
+      
+      // Check if the flow exists in the encrypted content
+      if (!encryptedData.flows || !encryptedData.flows[flowId]) {
+        console.warn(`No encrypted content found for flow: ${flowId}`);
+        return null;
+      }
+      
+      const flowData = encryptedData.flows[flowId];
+      
+      // Check if there was an error during encryption
+      if (flowData.error) {
+        throw new Error(`Encrypted content has error: ${flowData.error}`);
+      }
+      
+      // Return the encrypted content (excluding metadata)
+      const { metadata, ...encryptedContent } = flowData;
+      console.log(`✅ Loaded encrypted content for flow: ${flowId} (encrypted at: ${metadata?.encryptedAt})`);
+      
+      return encryptedContent;
+      
     } catch (error) {
-      console.error('Failed to create ethers wallet:', error);
+      console.warn('Failed to load encrypted content from public source:', error);
+      
+      // Fallback to localStorage for backwards compatibility
+      try {
+        const stored = localStorage.getItem(`encrypted_content_${flowId}`);
+        if (stored) {
+          console.log(`📁 Falling back to localStorage for flow: ${flowId}`);
+          return JSON.parse(stored);
+        }
+      } catch (localError) {
+        console.warn('LocalStorage fallback also failed:', localError);
+      }
+      
       return null;
     }
   };
+
 
   return {
     accessSteps,

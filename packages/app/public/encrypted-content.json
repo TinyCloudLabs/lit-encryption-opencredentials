@@ -1,0 +1,76 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2025-08-17T11:49:33.708Z",
+  "walletAddress": "0x8fd379246834eac74B8419FfdA202CF8051F7A03",
+  "mock": true,
+  "flows": {
+    "premium-research-access": {
+      "ciphertext": "IyBQcmVtaXVtIFJlc2VhcmNoIFJlcG9ydCAtIFE0IDIwMjQKCiMjIEV4ZWN1dGl2ZSBTdW1tYXJ5ClRoZSBibG9ja2NoYWluIG1hcmtldCBjb250aW51ZXMgdG8gc2hvdyBzdHJvbmcgZnVuZGFtZW50YWxzIHdpdGggaW5zdGl0dXRpb25hbCBhZG9wdGlvbiBhY2NlbGVyYXRpbmcgYWNyb3NzIG11bHRpcGxlIHNlY3RvcnMuCgojIyBLZXkgRmluZGluZ3MKLSBEZUZpIFRWTCBpbmNyZWFzZWQgYnkgMzQlIHF1YXJ0ZXItb3Zlci1xdWFydGVyCi0gTGF5ZXIgMiBzb2x1dGlvbnMgZ2FpbmVkIHNpZ25pZmljYW50IHRyYWN0aW9uCi0gTkZUIG1hcmtldHMgc3RhYmlsaXplZCB3aXRoIGZvY3VzIG9uIHV0aWxpdHkKCiMjIE1hcmtldCBBbmFseXNpcwpUaGUgY3VycmVudCBtYXJrZXQgY3ljbGUgc2hvd3Mgc2lnbnMgb2YgbWF0dXJhdGlvbiB3aXRoIGluY3JlYXNlZCByZWd1bGF0b3J5IGNsYXJpdHkgZHJpdmluZyBpbnN0aXR1dGlvbmFsIGNvbmZpZGVuY2UuLi4KCiMjIEludmVzdG1lbnQgUmVjb21tZW5kYXRpb25zCjEuIEZvY3VzIG9uIGluZnJhc3RydWN0dXJlIHBsYXlzCjIuIENvbnNpZGVyIGxheWVyIDIgc2NhbGluZyBzb2x1dGlvbnMKMy4gTW9uaXRvciByZWd1bGF0b3J5IGRldmVsb3BtZW50cwoKKlRoaXMgcmVwb3J0IGNvbnRhaW5zIGNvbmZpZGVudGlhbCBhbmQgcHJvcHJpZXRhcnkgaW5mb3JtYXRpb24uIERpc3RyaWJ1dGlvbiBpcyByZXN0cmljdGVkIHRvIHZlcmlmaWVkIHN1YnNjcmliZXJzIG9ubHkuKg==",
+      "dataToEncryptHash": "0x47054ab041fcf33e27bfebd3d84a7192455c6b7d9fc6f64d59df0e82cdf85e6f",
+      "accessControlConditions": [
+        {
+          "contractAddress": "",
+          "standardContractType": "timestamp",
+          "chain": "ethereum",
+          "method": "",
+          "parameters": [
+            ":currentActionIpfsId"
+          ],
+          "returnValueTest": {
+            "comparator": ">=",
+            "value": "0"
+          }
+        }
+      ],
+      "accsResourceString": "lit-accesscontrolcondition://0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "credentialRequirements": {
+        "issuer": "did:web:rebasedemokey.pages.dev",
+        "credentialType": "GitHubVerification",
+        "claims": {}
+      },
+      "userSignedJWT": "mock.jwt.token",
+      "userAddress": "0x8fd379246834eac74B8419FfdA202CF8051F7A03",
+      "metadata": {
+        "flowId": "premium-research-access",
+        "flowTitle": "Premium Research Content",
+        "encryptedAt": "2025-08-17T11:49:33.707Z",
+        "contentLength": 745,
+        "mock": true
+      }
+    },
+    "developer-resources": {
+      "ciphertext": "IyBEZXZlbG9wZXIgRG9jdW1lbnRhdGlvbgoKIyMgR2V0dGluZyBTdGFydGVkCldlbGNvbWUgdG8gb3VyIGRldmVsb3BlciBwbGF0Zm9ybSEgVGhpcyBndWlkZSB3aWxsIGhlbHAgeW91IGludGVncmF0ZSB3aXRoIG91ciBBUElzLgoKIyMgQXV0aGVudGljYXRpb24KQWxsIEFQSSBjYWxscyByZXF1aXJlIGF1dGhlbnRpY2F0aW9uIHVzaW5nIHlvdXIgQVBJIGtleToKCmBgYGphdmFzY3JpcHQKY29uc3QgcmVzcG9uc2UgPSBhd2FpdCBmZXRjaCgnL2FwaS9kYXRhJywgewogIGhlYWRlcnM6IHsKICAgICdBdXRob3JpemF0aW9uJzogJ0JlYXJlciBZT1VSX0FQSV9LRVknCiAgfQp9KTsKYGBgCgojIyBDb2RlIEV4YW1wbGVzCkhlcmUgYXJlIHNvbWUgY29tbW9uIGludGVncmF0aW9uIHBhdHRlcm5zLi4uCgojIyBMaXQgUHJvdG9jb2wgSW50ZWdyYXRpb24KVGhpcyBwbGF0Zm9ybSB1c2VzIExpdCBQcm90b2NvbCBmb3IgY3JlZGVudGlhbC1nYXRlZCBjb250ZW50IGFjY2Vzcy4gWW91J2xsIG5lZWQ6CjEuIEEgR2l0SHViIHZlcmlmaWNhdGlvbiBjcmVkZW50aWFsCjIuIEEgY29ubmVjdGVkIHdhbGxldAozLiBWYWxpZCBhY2Nlc3MgcGVybWlzc2lvbnMKCiMjIFN1cHBvcnQKRm9yIHRlY2huaWNhbCBzdXBwb3J0LCBwbGVhc2UgY29udGFjdCBvdXIgZGV2ZWxvcGVyIHRlYW0u",
+      "dataToEncryptHash": "0xced0c380cfc7482c38e9dba1375aa13aa154c5868820a5a840a6a3d83801a54d",
+      "accessControlConditions": [
+        {
+          "contractAddress": "",
+          "standardContractType": "timestamp",
+          "chain": "ethereum",
+          "method": "",
+          "parameters": [
+            ":currentActionIpfsId"
+          ],
+          "returnValueTest": {
+            "comparator": ">=",
+            "value": "0"
+          }
+        }
+      ],
+      "accsResourceString": "lit-accesscontrolcondition://0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "credentialRequirements": {
+        "issuer": "did:web:rebasedemokey.pages.dev",
+        "credentialType": "GitHubVerification",
+        "claims": {}
+      },
+      "userSignedJWT": "mock.jwt.token",
+      "userAddress": "0x8fd379246834eac74B8419FfdA202CF8051F7A03",
+      "metadata": {
+        "flowId": "developer-resources",
+        "flowTitle": "Developer Resources",
+        "encryptedAt": "2025-08-17T11:49:33.708Z",
+        "contentLength": 663,
+        "mock": true
+      }
+    }
+  }
+}
