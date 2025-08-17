@@ -1,0 +1,138 @@
+import { expect, use } from "chai";
+import chaiJsonSchema from "chai-json-schema";
+
+use(chaiJsonSchema);
+
+import { encryptToCredential, decryptFromCredentials } from "../src/index.js";
+import { loadCredentials, CredentialRequirements } from "../src/utils.js";
+
+describe("Credential-Gated Encryption/Decryption", () => {
+  const testSecret = "This is a super secret message that should only be decrypted with valid GitHub credentials!";
+  const userAddress = "0x251dea84e35b32ea793e6c54110672c44c3d5ccc"; // Address from credentials.json
+  
+  const credentialRequirements: CredentialRequirements = {
+    issuer: "did:web:rebasedemokey.pages.dev",
+    credentialType: "GitHubVerification",
+    claims: {
+      githubHandle: "skgbafa" // GitHub handle from credentials.json
+    }
+  };
+
+  let encryptedData: any;
+
+  describe("encryptToCredential", () => {
+    it("should encrypt secret with credential requirements", async () => {
+      encryptedData = await encryptToCredential(testSecret, credentialRequirements, userAddress);
+      
+      console.log("✅ Encryption result:", {
+        ciphertext: encryptedData.ciphertext.substring(0, 50) + "...",
+        dataToEncryptHash: encryptedData.dataToEncryptHash,
+        requirements: encryptedData.credentialRequirements
+      });
+
+      expect(encryptedData).to.have.property('ciphertext');
+      expect(encryptedData).to.have.property('dataToEncryptHash');
+      expect(encryptedData).to.have.property('accessControlConditions');
+      expect(encryptedData).to.have.property('accsResourceString');
+      expect(encryptedData).to.have.property('credentialRequirements');
+      
+      expect(encryptedData.credentialRequirements.issuer).to.equal(credentialRequirements.issuer);
+      expect(encryptedData.credentialRequirements.credentialType).to.equal(credentialRequirements.credentialType);
+    }).timeout(100_000);
+  });
+
+  describe("decryptFromCredentials", () => {
+    it("should decrypt secret with valid GitHub credential", async () => {
+      if (!encryptedData) {
+        throw new Error("Must run encryption test first");
+      }
+
+      const result = await decryptFromCredentials(encryptedData, userAddress);
+      
+      console.log("✅ Decryption result:", result);
+
+      expect(result).to.have.property('response');
+      
+      const response = result.response;
+      expect(response).to.have.property('success');
+      expect(response.success).to.be.true;
+      expect(response).to.have.property('secret');
+      expect(response.secret).to.equal(testSecret);
+      expect(response).to.have.property('verifiedCredential');
+      expect(response.verifiedCredential).to.have.property('githubHandle');
+      expect(response.verifiedCredential.githubHandle).to.equal('skgbafa');
+      expect(response.verifiedCredential.issuer).to.equal('did:web:rebasedemokey.pages.dev');
+    }).timeout(100_000);
+
+    it("should fail to decrypt with wrong user address", async () => {
+      if (!encryptedData) {
+        throw new Error("Must run encryption test first");
+      }
+
+      const wrongAddress = "0x0000000000000000000000000000000000000001";
+      
+      try {
+        const result = await decryptFromCredentials(encryptedData, wrongAddress);
+        
+        // If it doesn't throw, check that it failed gracefully
+        expect(result.response.success).to.be.false;
+        expect(result.response.error).to.include("No matching credential found");
+      } catch (error) {
+        // Expected to fail
+        expect((error as Error).message).to.include("No matching credential found");
+      }
+    }).timeout(100_000);
+
+    it("should fail to decrypt with different GitHub handle requirement", async () => {
+      if (!encryptedData) {
+        throw new Error("Must run encryption test first");
+      }
+
+      // Create new encryption with different GitHub handle requirement
+      const stricterRequirements: CredentialRequirements = {
+        issuer: "did:web:rebasedemokey.pages.dev",
+        credentialType: "GitHubVerification",
+        claims: {
+          githubHandle: "nonexistent-handle"
+        }
+      };
+
+      const stricterEncryptedData = await encryptToCredential(testSecret, stricterRequirements, userAddress);
+      
+      try {
+        const result = await decryptFromCredentials(stricterEncryptedData, userAddress);
+        
+        // If it doesn't throw, check that it failed gracefully
+        expect(result.response.success).to.be.false;
+        expect(result.response.error).to.include("No matching credential found");
+      } catch (error) {
+        // Expected to fail
+        expect((error as Error).message).to.include("No matching credential found");
+      }
+    }).timeout(100_000);
+  });
+
+  describe("credential loading", () => {
+    it("should load credentials successfully", () => {
+      const credentials = loadCredentials();
+      
+      console.log("📋 Loaded credentials:", credentials.map(c => ({
+        issuer: c.issuer,
+        subject: c.subject,
+        handle: c.handle
+      })));
+
+      expect(credentials).to.be.an('array');
+      expect(credentials.length).to.be.greaterThan(0);
+      
+      const firstCred = credentials[0];
+      expect(firstCred).to.have.property('jwt');
+      expect(firstCred).to.have.property('issuer');
+      expect(firstCred).to.have.property('subject');
+      expect(firstCred).to.have.property('handle');
+      
+      expect(firstCred.issuer).to.equal('did:web:rebasedemokey.pages.dev');
+      expect(firstCred.handle).to.equal('skgbafa');
+    });
+  });
+});
